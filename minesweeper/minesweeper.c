@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <getopt.h>
 #ifdef __linux__
 #include <termio.h>
 #else
@@ -21,26 +22,71 @@ int over, X = 1, Y = 1;			 // 判断游戏是否结束
 int nth;
 int size_l, size_c, num; // size:[1,30]
 
-void Make();			 // 生成雷
+//void Make();			 // 生成雷
 void Print();			 // 输出当前情况
 void Open(int x, int y); // 打开格子
 void Lose();			 // 判定游戏失败 输出被点击的地雷坐标
 void Win();				 // 判断游戏是否满足胜利条件
 void Click();
 void Clear();
+void InputPara(int *size_l, int *size_c, int *num); // 获取输入参数
+void SetPara(int size_l, int size_c, int num);	 // 设置参数
 #ifdef __linux__
 int _getch(void);
 #endif
 
-int main()
+int main(int argc, char* argv[])
 {
-	Make();
-	Print();
+	Clear();
+	int size_l = 10, size_c = 10, num = 10;
+	int opt;
+	
+	// 处理命令行参数
+	while ((opt = getopt(argc, argv, "l:c:n:")) != -1) {
+		switch (opt) {
+			case 'l':
+				size_l = atoi(optarg);
+				if (size_l <= 0 || size_l > 30) {
+					printf("Error: Invalid line number (1-30)\n");
+					return 1;
+				}
+				break;
+			case 'c':
+				size_c = atoi(optarg);
+				if (size_c <= 0 || size_c > 30) {
+					printf("Error: Invalid column number (1-30)\n");
+					return 1;
+				}
+				break;
+			case 'n':
+				num = atoi(optarg);
+				if (num <= 0) {
+					printf("Error: Invalid mine number\n");
+					return 1;
+				}
+				break;
+			default:
+				printf("Usage: %s -l <lines> -c <columns> -n <mines>\n", argv[0]);
+				return 1;
+		}
+	}
+	
+	// 如果没有提供任何参数，则通过交互方式输入
+	if (argc == 1) {
+		InputPara(&size_l, &size_c, &num);
+	}
+	
+	// 验证地雷数是否合法
+	if (num > size_l * size_c) {
+		printf("Error: Too many mines for the given grid size\n");
+		return 1;
+	}
+	SetPara(size_l, size_c, num);
 	while (over == 0)
 	{
 		Clear();
 		Print();
-		// scanf("%d%d", &X, &Y);//获取将要打开的格子坐标
+		//scanf("%d%d", &X, &Y);//获取将要打开的格子坐标
 		Click();
 		Open(X, Y);
 		Win();
@@ -55,17 +101,16 @@ int main()
 	nth = getchar();
 	return 0;
 }
-
-void Make()
+void InputPara(int *size_l, int *size_c, int *num)
 {
 	while (1) // 获取合法的输入数据
 	{
 		printf("Please enter the number of rows and columns of the map");
 		printf("(the maxium map is 30*30), separated by space:");
-		nth = scanf("%d%d", &size_l, &size_c);
+		nth = scanf("%d%d", size_l, size_c);
 		printf("Please enter the total number of mines:");
-		nth = scanf("%d", &num);
-		if (num > size_l * size_c) // 判定雷数是否超过格子总数
+		nth = scanf("%d", num);
+		if (*num > *size_l * *size_c) // 判定雷数是否超过格子总数
 		{
 			Clear();
 			printf("**ERROR:Illegal values!**\n");
@@ -73,7 +118,13 @@ void Make()
 		else
 			break;
 	}
+}
+void SetPara(int para_l, int para_c, int para_num)
+{
 	int i, j, k, l;
+	size_l = para_l;
+	size_c = para_c;
+	num = para_num;
 	int sum = num, x, y;
 	srand(time(NULL));
 	while (sum) // 生成num个雷的随机坐标
@@ -97,6 +148,8 @@ void Make()
 
 void Print()
 {
+	//Clear();
+	//gotoxy(0, 0);
 	int i, j;
 	printf("  ");
 	for (i = 1; i <= size_c; i++) // 输出列坐标
@@ -316,4 +369,5 @@ int _getch(void)
 		return -1;
 	return ch;
 }
+
 #endif
